@@ -61,6 +61,11 @@ export function useCardNotes(cardId: string) {
         }
 
         timeoutRef.current = setTimeout(async () => {
+            console.log("Env Check:", {
+                url: !!import.meta.env.VITE_SUPABASE_URL,
+                key: !!import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+            });
+
             if (!user) {
                 console.error("useCardNotes: Attempted to save but user is null");
                 setSaveError("Usuário não autenticado");
