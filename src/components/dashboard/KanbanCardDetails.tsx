@@ -20,7 +20,7 @@ interface KanbanCardDetailsProps {
 export function KanbanCardDetails({ card, onClose }: KanbanCardDetailsProps) {
     const { progress, toggleProgress } = useProgress();
     const { isItemCompleted, toggleChecklistItem, getCardProgress } = useChecklistProgress();
-    const { note, saveNote } = useCardNotes(card.id);
+    const { note, saveNote, saving, lastSaved } = useCardNotes(card.id);
 
     const [hasRead, setHasRead] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
@@ -302,14 +302,25 @@ export function KanbanCardDetails({ card, onClose }: KanbanCardDetailsProps) {
 
                 {/* Personal Notes Section */}
                 <div className="mt-8 pt-6 border-t border-border/50 pb-4">
-                    <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                        <Notebook className="w-4 h-4" />
-                        Anotações Pessoais
-                    </h3>
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                            <Notebook className="w-4 h-4" />
+                            Anotações Pessoais
+                        </h3>
+                        <span className="text-xs text-muted-foreground">
+                            {saving ? (
+                                <span className="animate-pulse text-primary">Salvando...</span>
+                            ) : lastSaved ? (
+                                `Salvo às ${lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                            ) : (
+                                "Salvo automaticamente"
+                            )}
+                        </span>
+                    </div>
                     <Textarea
                         value={note}
                         onChange={(e) => saveNote(e.target.value)}
-                        placeholder="Adicione suas anotações sobre este card aqui..."
+                        placeholder="Escreva suas anotações aqui..."
                         className="min-h-[100px] resize-none bg-muted/20 focus:bg-background transition-colors text-sm leading-relaxed"
                     />
                 </div>
