@@ -20,7 +20,7 @@ interface KanbanCardDetailsProps {
 export function KanbanCardDetails({ card, onClose }: KanbanCardDetailsProps) {
     const { progress, toggleProgress } = useProgress();
     const { isItemCompleted, toggleChecklistItem, getCardProgress } = useChecklistProgress();
-    const { note, saveNote, saving, lastSaved } = useCardNotes(card.id);
+    const { note, saveNote, saving, lastSaved, saveError } = useCardNotes(card.id);
 
     const [hasRead, setHasRead] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
@@ -308,7 +308,12 @@ export function KanbanCardDetails({ card, onClose }: KanbanCardDetailsProps) {
                             Anotações Pessoais
                         </h3>
                         <span className="text-xs text-muted-foreground">
-                            {saving ? (
+                            {saveError ? (
+                                <span className="text-red-500 font-medium flex items-center gap-1" title={saveError}>
+                                    <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                                    Erro ao salvar
+                                </span>
+                            ) : saving ? (
                                 <span className="animate-pulse text-primary">Salvando...</span>
                             ) : lastSaved ? (
                                 `Salvo às ${lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`

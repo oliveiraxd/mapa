@@ -8,10 +8,14 @@ export function useCardNotes(cardId: string) {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
+    const [saveError, setSaveError] = useState<string | null>(null); // New state
 
     // Load note from Supabase
     const loadNote = useCallback(async () => {
-        if (!user) return;
+        if (!user) {
+            console.log("useCardNotes: No user found during load");
+            return;
+        }
 
         try {
             setLoading(true);
@@ -50,13 +54,21 @@ export function useCardNotes(cardId: string) {
     const saveNote = (newNote: string) => {
         setNote(newNote); // Optimistic update
         setSaving(true);
+        setSaveError(null);
 
         if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
         }
 
         timeoutRef.current = setTimeout(async () => {
-            if (!user) return;
+            if (!user) {
+                console.error("useCardNotes: Attempted to save but user is null");
+                setSaveError("Usuário não autenticado");
+                setSaving(false);
+                return;
+            }
+
+            console.log("Saving note for user:", user.id, "card:", cardId);
 
             try {
                 const now = new Date();
@@ -73,18 +85,21 @@ export function useCardNotes(cardId: string) {
                     );
 
                 if (error) {
-                    console.error("Error saving note:", error);
-                    setSaving(false); // Keep saving true if error? No, indicate possibly failure.
+                    console.error("Supabase Error saving note:", error);
+                    setSaveError(error.message);
+                    setSaving(false);
                 } else {
+                    console.log("Note saved successfully to Supabase!");
                     setLastSaved(now);
                     setSaving(false);
                 }
-            } catch (error) {
-                console.error("Error saving note:", error);
+            } catch (error: any) {
+                console.error("Catch Error saving note:", error);
+                setSaveError(error.message || "Erro desconhecido");
                 setSaving(false);
             }
-        }, 1000); // Wait 1 second after last keystroke
+        }, 1000);
     };
 
-    return { note, saveNote, loading, saving, lastSaved };
+    return { note, saveNote, loading, saving, lastSaved, saveError };
 }
