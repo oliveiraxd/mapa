@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Check, ExternalLink, Calendar, User, Tag } from "lucide-react";
+import { Check, ExternalLink, Calendar, User, Tag, Notebook } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { Textarea } from "@/components/ui/textarea";
+import { useCardNotes } from "@/hooks/useCardNotes";
 import { DiagnosticForm } from "./DiagnosticForm";
 
 interface KanbanCardDetailsProps {
@@ -18,6 +20,7 @@ interface KanbanCardDetailsProps {
 export function KanbanCardDetails({ card, onClose }: KanbanCardDetailsProps) {
     const { progress, toggleProgress } = useProgress();
     const { isItemCompleted, toggleChecklistItem, getCardProgress } = useChecklistProgress();
+    const { note, saveNote } = useCardNotes(card.id);
 
     const [hasRead, setHasRead] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
@@ -288,13 +291,27 @@ export function KanbanCardDetails({ card, onClose }: KanbanCardDetailsProps) {
                 onScroll={handleScroll}
                 className="flex-1 overflow-y-auto pr-2 custom-scrollbar"
             >
-                <div className="prose prose-invert prose-lg max-w-none text-foreground leading-loose
-                    prose-headings:font-bold prose-headings:text-primary prose-headings:mb-6 prose-headings:mt-10
-                    prose-p:leading-loose prose-p:mb-8
-                    prose-li:my-4 prose-li:leading-loose
-                    prose-hr:my-10 prose-hr:border-border
+                <div className="prose prose-invert prose-lg max-w-none text-foreground leading-normal
+                    prose-headings:font-bold prose-headings:text-primary prose-headings:mb-6 prose-headings:mt-14
+                    prose-p:leading-normal prose-p:mb-14
+                    prose-li:my-4 prose-li:leading-normal
+                    prose-hr:my-14 prose-hr:border-border
                     prose-strong:text-foreground prose-strong:font-bold">
                     {renderContent()}
+                </div>
+
+                {/* Personal Notes Section */}
+                <div className="mt-8 pt-6 border-t border-border/50 pb-4">
+                    <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                        <Notebook className="w-4 h-4" />
+                        Anotações Pessoais
+                    </h3>
+                    <Textarea
+                        value={note}
+                        onChange={(e) => saveNote(e.target.value)}
+                        placeholder="Adicione suas anotações sobre este card aqui..."
+                        className="min-h-[100px] resize-none bg-muted/20 focus:bg-background transition-colors text-sm leading-relaxed"
+                    />
                 </div>
             </div>
 

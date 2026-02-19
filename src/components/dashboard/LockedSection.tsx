@@ -78,13 +78,20 @@ export function LockedSection() {
 
             {/* CTA */}
             <div className="pt-2">
-              <Button
-                size="sm"
-                className="w-full gradient-gold text-primary-foreground font-semibold glow-gold"
+              <a
+                href="https://mpp.descomplicadodigital.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full"
               >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Conhecer o Mestrado Passo a Passo
-              </Button>
+                <Button
+                  size="sm"
+                  className="w-full gradient-gold text-primary-foreground font-semibold glow-gold"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Conhecer o Mestrado Passo a Passo
+                </Button>
+              </a>
               <p className="text-xs text-muted-foreground mt-2 text-center">
                 Acesso a todos os recursos premium
               </p>
