@@ -32,16 +32,6 @@ const Dashboard = () => {
   };
 
   const handleCardClick = (cardId: string) => {
-    // Access Control: Block other cards if 'inst-1' is not completed
-    if (cardId !== "inst-1" && !progress["inst-1"]) {
-      toast({
-        title: "Acesso Bloqueado 🔒",
-        description: "Você precisa concluir a leitura do card 'Instruções de uso' antes de avançar.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     const card = kanbanColumns
       .flatMap((col) => col.cards)
       .find((c) => c.id === cardId);
@@ -84,14 +74,8 @@ const Dashboard = () => {
           <div className="h-full overflow-x-auto kanban-scrollbar-top">
             <div className="h-full flex gap-4 min-w-max kanban-scrollbar-top-content">
               {kanbanColumns.map((column, index) => {
-                // Lock logic: Locked if previous column is not 100% complete
-                const isLocked = index > 0 && (() => {
-                  const prevCol = kanbanColumns[index - 1];
-                  const prevIds = prevCol.cards
-                    .filter((c) => !c.title.toLowerCase().includes("bônus"))
-                    .map((c) => c.id);
-                  return getCompletionPercentage(prevIds) < 100;
-                })();
+                // Lock logic: Always unlocked
+                const isLocked = false;
 
                 return (
                   <KanbanColumn
