@@ -46,7 +46,7 @@ const PLACEHOLDERS = {
 export const kanbanColumns: KanbanColumn[] = [
   {
     id: "instructions",
-    title: "Como usar o Mapa da Aprovação",
+    title: "Como usar o Guia Completo",
     color: "kanban-instructions",
     icon: "🧭",
     cards: [
@@ -59,7 +59,7 @@ export const kanbanColumns: KanbanColumn[] = [
         banner: comeceAquiImg,
         tags: [{ label: "Leitura Obrigatória", color: "blue" }],
         priority: "Alta",
-        content: `# **🗺️ O Mapa Tático da Aprovação**
+        content: `# **🗺️ O Guia Completo para Entrar no Mestrado e se Destacar**
 
 ---
 
@@ -67,7 +67,7 @@ A maioria dos candidatos comete um erro fatal: acredita na ilusão de que "basta
 
 ---
 
-Para se tornar um candidato notável desde o primeiro contato, você precisa de estratégia. Este quadro é o seu mapa tático. Ele traz o meu Plano Inteligente de Aprovação, destilado apenas naquilo que você precisa executar, sem enrolação teórica.
+Para se tornar um candidato notável desde o primeiro contato, você precisa de estratégia. Este quadro é o seu guia tático. Ele traz o meu Plano Inteligente de Aprovação, destilado apenas naquilo que você precisa executar, sem enrolação teórica.
 
 ---
 

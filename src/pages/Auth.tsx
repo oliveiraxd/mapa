@@ -74,7 +74,7 @@ const Auth = () => {
           <img src="/profile.jpg" alt="Prof. Dr. Luã Oliveira" className="w-full h-full object-cover" />
         </div>
         <h1 className="text-3xl font-display font-bold text-foreground mb-2">
-          Mapa da aprovação no mestrado
+          O guia completo para entrar no mestrado e se destacar
         </h1>
         <p className="text-muted-foreground">
           Transforme seu histórico em um currículo competitivo para banca de mestrado

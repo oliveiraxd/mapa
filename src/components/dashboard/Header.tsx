@@ -34,7 +34,7 @@ export function Header() {
           </div>
           <div>
             <h1 className="font-display font-bold text-lg text-foreground">
-              Mapa da aprovação no mestrado
+              O guia completo para entrar no mestrado e se destacar
             </h1>
             <p className="text-xs text-muted-foreground">Desenvolvido pelo Prof. Dr. Luã Oliveira</p>
             <p className="text-xs text-muted-foreground">Todos os Direitos Reservados</p>
