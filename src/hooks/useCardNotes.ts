@@ -98,9 +98,10 @@ export function useCardNotes(cardId: string) {
                     setLastSaved(now);
                     setSaving(false);
                 }
-            } catch (error: any) {
+            } catch (error) {
                 console.error("Catch Error saving note:", error);
-                setSaveError(error.message || "Erro desconhecido");
+                const message = error && typeof error === "object" && "message" in error && typeof error.message === "string" ? error.message : "Erro desconhecido";
+                setSaveError(message);
                 setSaving(false);
             }
         }, 1000);

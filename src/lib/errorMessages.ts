@@ -11,10 +11,15 @@ const knownErrors: Record<string, string> = {
   'For security purposes, you can only request this once every 60 seconds': 'Aguarde 60 segundos antes de tentar novamente',
 };
 
-export function getSafeErrorMessage(error: any): string {
-  if (!error?.message) {
-    return 'Ocorreu um erro. Por favor, tente novamente.';
+export function getSafeErrorMessage(error: unknown): string {
+  if (!error || typeof error !== "object" || !("message" in error)) {
+    return "Ocorreu um erro. Por favor, tente novamente.";
   }
   
-  return knownErrors[error.message] || 'Ocorreu um erro. Por favor, tente novamente.';
+  const message = (error as { message: unknown }).message;
+  if (typeof message !== "string") {
+    return "Ocorreu um erro. Por favor, tente novamente.";
+  }
+  
+  return knownErrors[message] || "Ocorreu um erro. Por favor, tente novamente.";
 }
