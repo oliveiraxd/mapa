@@ -17,14 +17,22 @@ const AuthRedirectHandler = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const search = window.location.search;
     const hash = window.location.hash;
-    if (
-      hash &&
-      (hash.includes("type=invite") ||
-        hash.includes("type=recovery") ||
-        hash.includes("type=signup"))
-    ) {
-      navigate(`/definir-senha${hash}`, { replace: true });
+    const pathname = window.location.pathname;
+
+    const hasCode = search.includes("code=");
+    const hasAccessToken = hash.includes("access_token=");
+    const isInviteOrRecovery =
+      search.includes("type=invite") ||
+      search.includes("type=recovery") ||
+      search.includes("type=signup") ||
+      hash.includes("type=invite") ||
+      hash.includes("type=recovery") ||
+      hash.includes("type=signup");
+
+    if ((hasCode || hasAccessToken || isInviteOrRecovery) && pathname !== "/definir-senha") {
+      navigate(`/definir-senha${search}${hash}`, { replace: true });
     }
   }, [navigate]);
 
