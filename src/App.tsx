@@ -3,8 +3,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { ProgressProvider } from "@/contexts/ProgressContext";
+import { useAuth } from "@/hooks/useAuth";
+import { Loader2 } from "lucide-react";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
@@ -13,30 +15,64 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Synchronously capture if the initial page load has invitation or recovery parameters
+// before Supabase SDK consumes the hash/search and removes them from window.location.
+const initialHash = typeof window !== "undefined" ? window.location.hash : "";
+const initialSearch = typeof window !== "undefined" ? window.location.search : "";
+const isInviteOrRecoveryInitial =
+  initialHash.includes("type=invite") ||
+  initialHash.includes("type=recovery") ||
+  initialHash.includes("type=signup") ||
+  initialHash.includes("access_token=") ||
+  initialSearch.includes("type=invite") ||
+  initialSearch.includes("type=recovery") ||
+  initialSearch.includes("type=signup") ||
+  initialSearch.includes("code=");
+
+if (typeof window !== "undefined" && isInviteOrRecoveryInitial) {
+  (window as any).__IS_INVITE_OR_RECOVERY__ = true;
+}
+
 const AuthRedirectHandler = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const search = window.location.search;
-    const hash = window.location.hash;
+    const isInvite = typeof window !== "undefined" && (window as any).__IS_INVITE_OR_RECOVERY__;
     const pathname = window.location.pathname;
 
-    const hasCode = search.includes("code=");
-    const hasAccessToken = hash.includes("access_token=");
-    const isInviteOrRecovery =
-      search.includes("type=invite") ||
-      search.includes("type=recovery") ||
-      search.includes("type=signup") ||
-      hash.includes("type=invite") ||
-      hash.includes("type=recovery") ||
-      hash.includes("type=signup");
-
-    if ((hasCode || hasAccessToken || isInviteOrRecovery) && pathname !== "/definir-senha") {
-      navigate(`/definir-senha${search}${hash}`, { replace: true });
+    if (isInvite && pathname !== "/definir-senha") {
+      (window as any).__IS_INVITE_OR_RECOVERY__ = false;
+      navigate("/definir-senha", { replace: true });
     }
   }, [navigate]);
 
   return null;
+};
+
+const RootRedirect = () => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (loading) return;
+
+    const isInvite = typeof window !== "undefined" && (window as any).__IS_INVITE_OR_RECOVERY__;
+
+    if (isInvite) {
+      (window as any).__IS_INVITE_OR_RECOVERY__ = false;
+      navigate("/definir-senha", { replace: true });
+    } else if (user) {
+      navigate("/dashboard", { replace: true });
+    } else {
+      navigate("/auth", { replace: true });
+    }
+  }, [user, loading, navigate]);
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+    </div>
+  );
 };
 
 const App = () => (
@@ -48,7 +84,7 @@ const App = () => (
         <AuthRedirectHandler />
         <ProgressProvider>
           <Routes>
-            <Route path="/" element={<Navigate to="/auth" replace />} />
+            <Route path="/" element={<RootRedirect />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin" element={<Admin />} />
