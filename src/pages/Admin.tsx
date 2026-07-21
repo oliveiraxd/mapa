@@ -138,7 +138,7 @@ const Admin = () => {
         data: {
           full_name: newUser.fullName,
         },
-        emailRedirectTo: `${window.location.origin}/`,
+        emailRedirectTo: `${window.location.origin}/definir-senha`,
       },
     });
 
