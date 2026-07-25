@@ -266,7 +266,7 @@ export const MandatorySurveyModal: React.FC<MandatorySurveyModalProps> = ({ isOp
                   <div className="rounded-xl p-4 bg-amber-500/10 border border-amber-500/20 text-xs text-amber-600 dark:text-amber-400 flex items-start gap-2.5">
                     <Sparkles className="w-4 h-4 shrink-0 mt-0.5" />
                     <span>
-                      Ao clicar em <strong>"Liberar Bônus"</strong>, você receberá acesso imediato ao <strong>Template de Pré-Projeto</strong> e ao <strong>Checklist da Banca</strong>.
+                      Ao clicar em <strong>"Liberar Bônus"</strong>, você receberá acesso imediato ao <strong>Checklist Secreto da Banca Examinadora</strong>.
                     </span>
                   </div>
                 </div>
@@ -311,39 +311,33 @@ export const MandatorySurveyModal: React.FC<MandatorySurveyModalProps> = ({ isOp
               </Badge>
               <h2 className="text-2xl font-extrabold text-foreground">Seu Bônus Exclusivo Foi Liberado!</h2>
               <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-                Obrigado por responder! Separamos estes materiais essenciais para você começar com o pé direito:
+                Obrigado por responder! Acesse seu Checklist Secreto abaixo:
               </p>
             </div>
 
-            {/* Cards com os Bônus (Isca) */}
+            {/* Card com a Isca Única (Notion Checklist) */}
             <div className="grid gap-3 text-left max-w-md mx-auto">
-              <div className="p-4 rounded-xl border border-primary/30 bg-primary/5 flex items-center justify-between gap-3">
+              <div className="p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 shadow-sm flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-primary/10 rounded-lg text-primary">
-                    <FileText className="w-5 h-5" />
+                  <div className="p-2.5 bg-amber-500/20 rounded-lg text-amber-500 shrink-0">
+                    <ShieldCheck className="w-6 h-6" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-sm text-foreground">Template Editável de Pré-Projeto</h4>
-                    <p className="text-xs text-muted-foreground">Estrutura formatada ABNT pronta para preencher.</p>
+                    <h4 className="font-bold text-sm text-foreground">Checklist Secreto da Banca Examinadora</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">O que os avaliadores realmente checam antes de te aprovar.</p>
                   </div>
                 </div>
-                <Button size="sm" variant="secondary" className="shrink-0 gap-1 text-xs" onClick={() => window.open("https://docs.google.com", "_blank")}>
-                  <Download className="w-3.5 h-3.5" /> Baixar
-                </Button>
-              </div>
-
-              <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-amber-500/10 rounded-lg text-amber-500">
-                    <ShieldCheck className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-sm text-foreground">Checklist Secreto da Banca</h4>
-                    <p className="text-xs text-muted-foreground">Os 10 pontos que a banca avalia antes da aprovação.</p>
-                  </div>
-                </div>
-                <Button size="sm" variant="secondary" className="shrink-0 gap-1 text-xs" onClick={() => window.open("https://docs.google.com", "_blank")}>
-                  <Download className="w-3.5 h-3.5" /> Baixar
+                <Button
+                  size="sm"
+                  className="shrink-0 gap-1.5 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-slate-950 shadow"
+                  onClick={() =>
+                    window.open(
+                      "https://profluaoliveira.notion.site/CHECKLIST-Secreto-da-Banca-Examinadora-o-que-os-avaliadores-realmente-checam-antes-de-te-aprovar-3a888e1ea74581f39ccff15ec5e018c1?source=copy_link",
+                      "_blank"
+                    )
+                  }
+                >
+                  <Download className="w-3.5 h-3.5" /> Abrir no Notion
                 </Button>
               </div>
             </div>

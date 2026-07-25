@@ -52,8 +52,8 @@ export const kanbanColumns: KanbanColumn[] = [
     cards: [
       {
         id: "survey-bonus",
-        title: "🎁 [PESQUISA] Responda e Libere seus Bônus de Pré-Projeto",
-        description: "Qualifique seu perfil e baixe o Template de Pré-Projeto + Checklist da Banca",
+        title: "🎁 [PESQUISA] Responda e Libere o Checklist Secreto da Banca",
+        description: "Qualifique seu perfil e acesse o Checklist Secreto com o que os avaliadores realmente checam",
         type: "form",
         thumbnail: comeceAquiImg,
         banner: comeceAquiImg,
@@ -62,7 +62,7 @@ export const kanbanColumns: KanbanColumn[] = [
           { label: "Bônus Liberado", color: "green" },
         ],
         priority: "Urgente",
-        content: `# **🎁 Pesquisa Obrigatória & Resgate do Seu Bônus**
+        content: `# **🎁 Pesquisa Obrigatória & Resgate do Checklist Secreto**
 
 ---
 
@@ -72,13 +72,13 @@ Para direcionarmos você com máxima precisão no seu processo seletivo de mestr
 ---
 
 ### **O que você ganha ao finalizar:**
-1. 📄 **Template Editável de Pré-Projeto de Pesquisa** (Pronto na ABNT).
-2. 📋 **Checklist Secreto de Avaliação da Banca Examinadora** (10 pontos decisivos).
-3. 🔓 **Desbloqueio de todo o plano tático do seu Guia**.
+📋 **Checklist Secreto da Banca Examinadora:** *O que os avaliadores realmente checam antes de te aprovar*.
+
+[👉 **Clique aqui para acessar o Checklist Secreto no Notion**](https://profluaoliveira.notion.site/CHECKLIST-Secreto-da-Banca-Examinadora-o-que-os-avaliadores-realmente-checam-antes-de-te-aprovar-3a888e1ea74581f39ccff15ec5e018c1?source=copy_link)
 
 ---
 
-Clique no botão abaixo ou responda a pesquisa na tela para resgatar seus arquivos!`,
+Responda a pesquisa na tela para desbloquear o acesso!`,
       },
       {
         id: "inst-1",
