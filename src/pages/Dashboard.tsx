@@ -11,6 +11,8 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { KanbanCardDetails } from "@/components/dashboard/KanbanCardDetails";
 import { useProgress } from "@/hooks/useProgress";
 import { useToast } from "@/hooks/use-toast";
+import { useSurvey } from "@/hooks/useSurvey";
+import { MandatorySurveyModal } from "@/components/dashboard/MandatorySurveyModal";
 
 const Dashboard = () => {
   const { user, loading } = useAuth();
@@ -19,6 +21,8 @@ const Dashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { getCompletionPercentage, progress } = useProgress();
   const { toast } = useToast();
+  const { hasCompletedSurvey, loading: surveyLoading } = useSurvey();
+  const [isSurveyModalForcedOpen, setIsSurveyModalForcedOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -26,22 +30,24 @@ const Dashboard = () => {
     }
   }, [user, loading, navigate]);
 
+  const showSurveyModal = isSurveyModalForcedOpen || (hasCompletedSurvey === false && !surveyLoading && !loading);
+
   // Check if card is a construtor card
   const isConstrutorCard = (card: KanbanCard | null) => {
     return card?.id.startsWith("build-");
   };
 
   const handleCardClick = (cardId: string) => {
+    if (cardId === "survey-bonus") {
+      setIsSurveyModalForcedOpen(true);
+      return;
+    }
+
     const card = kanbanColumns
       .flatMap((col) => col.cards)
       .find((c) => c.id === cardId);
 
     if (card) {
-      // Even links should open the side panel now to show details/tags if we want Notion style
-      // But let's keep the direct link behavior if it was strictly external
-      // actually, the plan said "Side Panel" for details. 
-      // Let's open the side panel for everything to be consistent, 
-      // where the link card will have a big "Open Link" button.
       setSelectedCard(card);
       setIsModalOpen(true);
     }
@@ -114,6 +120,12 @@ const Dashboard = () => {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Modal de Pesquisa Obrigatória e Isca */}
+      <MandatorySurveyModal
+        isOpen={showSurveyModal}
+        onComplete={() => setIsSurveyModalForcedOpen(false)}
+      />
     </div>
   );
 };

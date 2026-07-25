@@ -51,6 +51,36 @@ export const kanbanColumns: KanbanColumn[] = [
     icon: "🧭",
     cards: [
       {
+        id: "survey-bonus",
+        title: "🎁 [PESQUISA] Responda e Libere seus Bônus de Pré-Projeto",
+        description: "Qualifique seu perfil e baixe o Template de Pré-Projeto + Checklist da Banca",
+        type: "form",
+        thumbnail: comeceAquiImg,
+        banner: comeceAquiImg,
+        tags: [
+          { label: "Obrigatório", color: "red" },
+          { label: "Bônus Liberado", color: "green" },
+        ],
+        priority: "Urgente",
+        content: `# **🎁 Pesquisa Obrigatória & Resgate do Seu Bônus**
+
+---
+
+### **Por que responder esta pesquisa?**
+Para direcionarmos você com máxima precisão no seu processo seletivo de mestrado, precisamos entender seu momento atual, suas experiências passadas e qual formato de estudo mais se adequa a você.
+
+---
+
+### **O que você ganha ao finalizar:**
+1. 📄 **Template Editável de Pré-Projeto de Pesquisa** (Pronto na ABNT).
+2. 📋 **Checklist Secreto de Avaliação da Banca Examinadora** (10 pontos decisivos).
+3. 🔓 **Desbloqueio de todo o plano tático do seu Guia**.
+
+---
+
+Clique no botão abaixo ou responda a pesquisa na tela para resgatar seus arquivos!`,
+      },
+      {
         id: "inst-1",
         title: "Instruções de uso",
         description: "Veja como aproveitar ao máximo a plataforma",

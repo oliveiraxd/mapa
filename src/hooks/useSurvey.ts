@@ -1,0 +1,114 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "./useAuth";
+
+export interface SurveyAnswers {
+  stage: string;
+  previous_attempt: string;
+  preferred_format: string;
+  whatsapp?: string;
+}
+
+export const useSurvey = () => {
+  const { user } = useAuth();
+  const [hasCompletedSurvey, setHasCompletedSurvey] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const checkSurveyStatus = async () => {
+      if (!user) {
+        if (isMounted) {
+          setHasCompletedSurvey(false);
+          setLoading(false);
+        }
+        return;
+      }
+
+      // Check localStorage first for instant response
+      const localStatus = localStorage.getItem(`survey_completed_${user.id}`);
+      if (localStatus === "true") {
+        if (isMounted) {
+          setHasCompletedSurvey(true);
+          setLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const { data, error } = await (supabase as any)
+          .from("user_surveys")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.warn("Survey check warning (table might not exist yet):", error.message);
+          if (isMounted) {
+            setHasCompletedSurvey(localStatus === "true");
+          }
+        } else if (data) {
+          localStorage.setItem(`survey_completed_${user.id}`, "true");
+          if (isMounted) {
+            setHasCompletedSurvey(true);
+          }
+        } else {
+          if (isMounted) {
+            setHasCompletedSurvey(false);
+          }
+        }
+      } catch (err) {
+        console.error("Error checking survey status:", err);
+        if (isMounted) {
+          setHasCompletedSurvey(localStatus === "true");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    checkSurveyStatus();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
+  const submitSurvey = async (answers: SurveyAnswers): Promise<boolean> => {
+    if (!user) return false;
+
+    // Save locally first for instant UI response
+    localStorage.setItem(`survey_completed_${user.id}`, "true");
+    setHasCompletedSurvey(true);
+
+    try {
+      const { error } = await (supabase as any)
+        .from("user_surveys")
+        .upsert({
+          user_id: user.id,
+          stage: answers.stage,
+          previous_attempt: answers.previous_attempt,
+          preferred_format: answers.preferred_format,
+          whatsapp: answers.whatsapp || null,
+          updated_at: new Date().toISOString(),
+        });
+
+      if (error) {
+        console.warn("Could not save to Supabase table (saved locally):", error.message);
+      }
+      return true;
+    } catch (err) {
+      console.error("Error saving survey:", err);
+      return true; // Return true because it saved in localStorage
+    }
+  };
+
+  return {
+    hasCompletedSurvey,
+    loading,
+    submitSurvey,
+  };
+};
