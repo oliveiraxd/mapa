@@ -70,20 +70,42 @@ create policy "Users can view own checklist" on public.user_checklist_progress f
 create policy "Users can insert own checklist" on public.user_checklist_progress for insert with check (auth.uid() = user_id);
 create policy "Users can update own checklist" on public.user_checklist_progress for update using (auth.uid() = user_id);
 
--- 4. Create USER_ROLES table (Optional, but good for completeness)
+-- 4. Create USER_ROLES table & app_role Enum
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'app_role') THEN
+        CREATE TYPE public.app_role AS ENUM ('admin', 'user');
+    END IF;
+END $$;
+
 create table if not exists public.user_roles (
   id uuid default gen_random_uuid() primary key,
-  user_id uuid references auth.users not null,
-  role app_role default 'user',
+  user_id uuid references auth.users on delete cascade not null,
+  role public.app_role not null default 'user',
   unique(user_id, role)
 );
 
+-- Function RPC has_role for permission checking
+create or replace function public.has_role(_user_id uuid, _role public.app_role)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.user_roles
+    where user_id = _user_id
+      and role = _role
+  )
+$$;
+
 -- RLS for User Roles
 alter table public.user_roles enable row level security;
-create policy "Users can view own roles" on public.user_roles for select using (auth.uid() = user_id);
-create policy "Only admins can manage roles" on public.user_roles for all using (
-  exists (
-    select 1 from public.user_roles
-    where user_id = auth.uid() and role = 'admin'
-  )
-);
+drop policy if exists "Users can view own roles" on public.user_roles;
+create policy "Users can view own roles" on public.user_roles for select using (auth.uid() = user_id or public.has_role(auth.uid(), 'admin'));
+
+drop policy if exists "Only admins can manage roles" on public.user_roles;
+create policy "Only admins can manage roles" on public.user_roles for all using (public.has_role(auth.uid(), 'admin'));
+

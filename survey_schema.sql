@@ -25,3 +25,13 @@ create policy "Users can insert their own survey responses"
 create policy "Users can update their own survey responses"
   on public.user_surveys for update
   using (auth.uid() = user_id);
+
+create policy "Admins can view all survey responses"
+  on public.user_surveys for select
+  using (
+    exists (
+      select 1 from public.user_roles
+      where user_id = auth.uid() and role = 'admin'
+    )
+  );
+

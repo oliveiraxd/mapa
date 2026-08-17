@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,6 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { getSafeErrorMessage } from "@/lib/errorMessages";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -33,7 +42,13 @@ import {
   Loader2, 
   Users, 
   Shield, 
-  Activity 
+  Activity,
+  ClipboardList,
+  FileSpreadsheet,
+  Search,
+  Phone,
+  Filter,
+  MessageSquareCheck
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -48,13 +63,35 @@ interface UserWithRole extends UserProfile {
   role?: string;
 }
 
+interface SurveyResponse {
+  id: string;
+  user_id: string;
+  stage: string;
+  previous_attempt: string;
+  preferred_format: string;
+  whatsapp: string | null;
+  created_at: string;
+  updated_at: string;
+  user?: UserProfile;
+}
+
 const Admin = () => {
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdminRole();
   const navigate = useNavigate();
   const { toast } = useToast();
+  
   const [users, setUsers] = useState<UserWithRole[]>([]);
+  const [surveys, setSurveys] = useState<SurveyResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [surveysLoading, setSurveysLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("surveys");
+
+  // Filter & Search states for surveys
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStage, setSelectedStage] = useState<string>("all");
+
+  // Create & Delete User dialog states
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newUser, setNewUser] = useState({ email: "", password: "", fullName: "" });
   const [creating, setCreating] = useState(false);
@@ -82,14 +119,15 @@ const Admin = () => {
 
   useEffect(() => {
     if (isAdmin) {
-      fetchUsers();
+      fetchData();
     }
   }, [isAdmin]);
 
-  const fetchUsers = async () => {
+  const fetchData = async () => {
     setLoading(true);
-    
-    // Fetch profiles
+    setSurveysLoading(true);
+
+    // 1. Fetch profiles
     const { data: profilesData, error: profilesError } = await supabase
       .from("profiles")
       .select("*")
@@ -102,30 +140,137 @@ const Admin = () => {
         description: "Não foi possível carregar os usuários.",
       });
       setLoading(false);
+      setSurveysLoading(false);
       return;
     }
 
-    // Fetch roles for each user
+    const profiles = profilesData || [];
+
+    // 2. Fetch roles
     const { data: rolesData } = await supabase
       .from("user_roles")
       .select("user_id, role");
 
-    const usersWithRoles = (profilesData || []).map(profile => ({
+    const usersWithRoles = profiles.map((profile) => ({
       ...profile,
-      role: rolesData?.find(r => r.user_id === profile.id)?.role || 'user'
+      role: rolesData?.find((r) => r.user_id === profile.id)?.role || "user",
     }));
 
     setUsers(usersWithRoles);
     setLoading(false);
+
+    // 3. Fetch surveys
+    try {
+      const { data: surveysData, error: surveysError } = await (supabase as any)
+        .from("user_surveys")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (surveysError) {
+        console.warn("Aviso ao carregar pesquisas:", surveysError.message);
+      } else if (surveysData) {
+        const enrichedSurveys: SurveyResponse[] = surveysData.map((survey: any) => ({
+          ...survey,
+          user: profiles.find((p) => p.id === survey.user_id),
+        }));
+        setSurveys(enrichedSurveys);
+      }
+    } catch (err) {
+      console.error("Erro ao buscar respostas da pesquisa:", err);
+    } finally {
+      setSurveysLoading(false);
+    }
   };
 
-  const adminCount = users.filter(u => u.role === 'admin').length;
-  const recentUsers = users.filter(u => {
+  const recentUsers = users.filter((u) => {
     const createdAt = new Date(u.created_at);
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
     return createdAt > weekAgo;
   }).length;
+
+  const whatsappCount = surveys.filter((s) => Boolean(s.whatsapp && s.whatsapp.trim())).length;
+
+  // Filtered surveys logic
+  const filteredSurveys = useMemo(() => {
+    return surveys.filter((survey) => {
+      const name = survey.user?.full_name?.toLowerCase() || "";
+      const email = survey.user?.email?.toLowerCase() || "";
+      const phone = survey.whatsapp?.toLowerCase() || "";
+      const query = searchQuery.toLowerCase().trim();
+
+      const matchesSearch =
+        !query ||
+        name.includes(query) ||
+        email.includes(query) ||
+        phone.includes(query);
+
+      const matchesStage =
+        selectedStage === "all" || survey.stage === selectedStage;
+
+      return matchesSearch && matchesStage;
+    });
+  }, [surveys, searchQuery, selectedStage]);
+
+  // Unique stage options for filter
+  const stageOptions = useMemo(() => {
+    const set = new Set<string>();
+    surveys.forEach((s) => {
+      if (s.stage) set.add(s.stage);
+    });
+    return Array.from(set);
+  }, [surveys]);
+
+  // Export CSV function
+  const handleExportCSV = () => {
+    if (filteredSurveys.length === 0) {
+      toast({
+        title: "Nenhum dado",
+        description: "Não há respostas para exportar com os filtros atuais.",
+      });
+      return;
+    }
+
+    const headers = [
+      "Nome",
+      "Email",
+      "WhatsApp",
+      "Estágio Atual",
+      "Tentativa Anterior",
+      "Formato Preferido",
+      "Data da Pesquisa",
+    ];
+
+    const rows = filteredSurveys.map((s) => [
+      `"${s.user?.full_name || "N/A"}"`,
+      `"${s.user?.email || "N/A"}"`,
+      `"${s.whatsapp || "N/A"}"`,
+      `"${(s.stage || "").replace(/"/g, '""')}"`,
+      `"${(s.previous_attempt || "").replace(/"/g, '""')}"`,
+      `"${(s.preferred_format || "").replace(/"/g, '""')}"`,
+      `"${new Date(s.created_at).toLocaleString("pt-BR")}"`,
+    ]);
+
+    const csvContent =
+      "\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `respostas_pesquisa_${new Date().toISOString().split("T")[0]}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Exportado com sucesso",
+      description: `${filteredSurveys.length} respostas foram exportadas para CSV.`,
+    });
+  };
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,15 +300,14 @@ const Admin = () => {
       });
       setIsDialogOpen(false);
       setNewUser({ email: "", password: "", fullName: "" });
-      fetchUsers();
+      fetchData();
     }
     setCreating(false);
   };
 
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
-    
-    // Não permitir excluir a si mesmo
+
     if (userToDelete.id === user?.id) {
       toast({
         variant: "destructive",
@@ -177,7 +321,6 @@ const Admin = () => {
 
     setDeleting(true);
 
-    // Primeiro, deletar o role do usuário
     const { error: roleError } = await supabase
       .from("user_roles")
       .delete()
@@ -193,7 +336,6 @@ const Admin = () => {
       return;
     }
 
-    // Depois, deletar o perfil
     const { error: profileError } = await supabase
       .from("profiles")
       .delete()
@@ -210,12 +352,19 @@ const Admin = () => {
         title: "Sucesso",
         description: "Usuário excluído com sucesso!",
       });
-      fetchUsers();
+      fetchData();
     }
 
     setDeleting(false);
     setDeleteDialogOpen(false);
     setUserToDelete(null);
+  };
+
+  // Format WhatsApp Link
+  const getWhatsAppLink = (phone: string) => {
+    const cleanPhone = phone.replace(/\D/g, "");
+    const formatted = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
+    return `https://wa.me/${formatted}`;
   };
 
   if (authLoading || adminLoading) {
@@ -231,7 +380,7 @@ const Admin = () => {
       {/* Header */}
       <header className="bg-card border-b border-border">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
@@ -239,7 +388,7 @@ const Admin = () => {
                 onClick={() => navigate("/dashboard")}
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Voltar
+                Voltar ao Guia
               </Button>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -250,7 +399,7 @@ const Admin = () => {
                     Painel Administrativo
                   </h1>
                   <p className="text-xs text-muted-foreground">
-                    Gerenciamento de Usuários
+                    Gestão de Alunos & Pesquisa Inicial
                   </p>
                 </div>
               </div>
@@ -322,9 +471,10 @@ const Admin = () => {
         </div>
       </header>
 
-      {/* Stats Cards */}
+      {/* Main Content */}
       <main className="container mx-auto px-4 py-8 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="bg-card border-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -335,104 +485,272 @@ const Admin = () => {
             <CardContent>
               <div className="text-2xl font-bold">{users.length}</div>
               <p className="text-xs text-muted-foreground">
-                usuários cadastrados
+                cadastrados na plataforma
               </p>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-card border-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Administradores
+                Pesquisas Respondidas
               </CardTitle>
-              <Shield className="h-4 w-4 text-muted-foreground" />
+              <ClipboardList className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{adminCount}</div>
+              <div className="text-2xl font-bold">{surveys.length}</div>
               <p className="text-xs text-muted-foreground">
-                com acesso admin
+                {users.length > 0
+                  ? `${Math.round((surveys.length / users.length) * 100)}% de taxa de preenchimento`
+                  : "respostas coletadas"}
               </p>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-card border-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Novos (7 dias)
+                Contatos com WhatsApp
+              </CardTitle>
+              <MessageSquareCheck className="h-4 w-4 text-emerald-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{whatsappCount}</div>
+              <p className="text-xs text-muted-foreground">
+                leads qualificados para contato
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-card border-border">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Cadastros (7 dias)
               </CardTitle>
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{recentUsers}</div>
               <p className="text-xs text-muted-foreground">
-                cadastros recentes
+                novos alunos nesta semana
               </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Users Table */}
-        <div className="bg-card rounded-xl border border-border overflow-hidden">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        {/* Tabs Section */}
+        <Tabs defaultValue="surveys" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <TabsList className="bg-secondary border border-border">
+              <TabsTrigger value="surveys" className="gap-2">
+                <ClipboardList className="w-4 h-4" />
+                Respostas da Pesquisa ({surveys.length})
+              </TabsTrigger>
+              <TabsTrigger value="users" className="gap-2">
+                <Users className="w-4 h-4" />
+                Usuários ({users.length})
+              </TabsTrigger>
+            </TabsList>
+
+            {activeTab === "surveys" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportCSV}
+                className="gap-2 border-border"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
+                Exportar para CSV
+              </Button>
+            )}
+          </div>
+
+          {/* TAB 1: SURVEY RESPONSES */}
+          <TabsContent value="surveys" className="space-y-4">
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nome, email ou WhatsApp..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 bg-card border-border w-full"
+                />
+              </div>
+
+              {stageOptions.length > 0 && (
+                <div className="w-full sm:w-64 flex items-center gap-2">
+                  <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <Select value={selectedStage} onValueChange={setSelectedStage}>
+                    <SelectTrigger className="bg-card border-border">
+                      <SelectValue placeholder="Filtrar por Fase" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border">
+                      <SelectItem value="all">Todas as Fases</SelectItem>
+                      {stageOptions.map((stage) => (
+                        <SelectItem key={stage} value={stage}>
+                          {stage}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border">
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Criado em</TableHead>
-                  <TableHead className="w-20">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((profile) => (
-                  <TableRow key={profile.id} className="border-border">
-                    <TableCell className="font-medium">
-                      {profile.full_name || "-"}
-                    </TableCell>
-                    <TableCell>{profile.email || "-"}</TableCell>
-                    <TableCell>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                        profile.role === 'admin' 
-                          ? 'bg-primary/10 text-primary' 
-                          : 'bg-muted text-muted-foreground'
-                      }`}>
-                        {profile.role === 'admin' ? 'Admin' : 'Usuário'}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(profile.created_at).toLocaleDateString("pt-BR")}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => {
-                          setUserToDelete(profile);
-                          setDeleteDialogOpen(true);
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {users.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                      Nenhum usuário cadastrado
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </div>
+
+            <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
+              {surveysLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border bg-secondary/50">
+                      <TableHead>Aluno</TableHead>
+                      <TableHead>WhatsApp</TableHead>
+                      <TableHead>Estágio Atual</TableHead>
+                      <TableHead>Tentativa Anterior</TableHead>
+                      <TableHead>Formato Preferido</TableHead>
+                      <TableHead className="w-32">Respondido Em</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredSurveys.map((survey) => (
+                      <TableRow key={survey.id} className="border-border">
+                        <TableCell>
+                          <div className="font-medium">
+                            {survey.user?.full_name || "Sem Nome"}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {survey.user?.email || "Sem Email"}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {survey.whatsapp ? (
+                            <a
+                              href={getWhatsAppLink(survey.whatsapp)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs text-emerald-400 hover:underline bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 font-mono"
+                            >
+                              <Phone className="w-3 h-3" />
+                              {survey.whatsapp}
+                            </a>
+                          ) : (
+                            <span className="text-xs text-muted-foreground italic">
+                              Não informado
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="text-xs max-w-xs truncate font-normal">
+                            {survey.stage}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground max-w-xs">
+                          {survey.previous_attempt}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground max-w-xs">
+                          {survey.preferred_format}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                          {new Date(survey.created_at).toLocaleDateString("pt-BR", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {filteredSurveys.length === 0 && (
+                      <TableRow>
+                        <TableCell
+                          colSpan={6}
+                          className="text-center py-12 text-muted-foreground"
+                        >
+                          Nenhuma resposta de pesquisa encontrada.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* TAB 2: USERS MANAGEMENT */}
+          <TabsContent value="users" className="space-y-4">
+            <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
+              {loading ? (
+                <div className="flex items-center justify-center py-16">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border bg-secondary/50">
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Permissão</TableHead>
+                      <TableHead>Criado em</TableHead>
+                      <TableHead className="w-20">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((profile) => (
+                      <TableRow key={profile.id} className="border-border">
+                        <TableCell className="font-medium">
+                          {profile.full_name || "-"}
+                        </TableCell>
+                        <TableCell>{profile.email || "-"}</TableCell>
+                        <TableCell>
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                              profile.role === "admin"
+                                ? "bg-primary/10 text-primary border border-primary/20"
+                                : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {profile.role === "admin" ? "Admin" : "Usuário"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {new Date(profile.created_at).toLocaleDateString("pt-BR")}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => {
+                              setUserToDelete(profile);
+                              setDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {users.length === 0 && (
+                      <TableRow>
+                        <TableCell
+                          colSpan={5}
+                          className="text-center py-12 text-muted-foreground"
+                        >
+                          Nenhum usuário cadastrado.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
       </main>
 
       {/* Delete Confirmation Dialog */}
