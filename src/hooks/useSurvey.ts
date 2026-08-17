@@ -113,12 +113,8 @@ export const useSurvey = () => {
   const triggerMakeWebhook = async (currentUser: any, answers: SurveyAnswers) => {
     const webhookUrl =
       import.meta.env.VITE_MAKE_WEBHOOK_URL ||
-      "https://hook.us1.make.com/REPLACE_WITH_YOUR_WEBHOOK_ID"; // O usuário fornecerá a URL do Make
+      "https://hook.us2.make.com/17huteueqjrntfmlk653ewuje3dew4kn";
 
-    if (!webhookUrl || webhookUrl.includes("REPLACE_WITH_YOUR_WEBHOOK_ID")) {
-      console.log("Make Webhook URL não configurada. Defina VITE_MAKE_WEBHOOK_URL em .env ou informe a URL.");
-      return;
-    }
 
     try {
       let fullName = currentUser.user_metadata?.full_name || "";
