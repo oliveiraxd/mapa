@@ -48,7 +48,7 @@ import {
   Search,
   Phone,
   Filter,
-  MessageSquareCheck
+  CheckCircle2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -512,7 +512,7 @@ const Admin = () => {
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Contatos com WhatsApp
               </CardTitle>
-              <MessageSquareCheck className="h-4 w-4 text-emerald-500" />
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{whatsappCount}</div>
