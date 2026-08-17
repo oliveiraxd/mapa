@@ -74,6 +74,20 @@ export const MandatorySurveyModal: React.FC<MandatorySurveyModalProps> = ({ isOp
     onComplete();
   };
 
+  const formatWhatsApp = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 11);
+    if (digits.length <= 2) {
+      return digits ? `(${digits}` : "";
+    }
+    if (digits.length <= 6) {
+      return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    }
+    if (digits.length <= 10) {
+      return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+    }
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>
       <DialogContent className="sm:max-w-xl w-[92vw] max-h-[90vh] overflow-y-auto bg-card border-border shadow-2xl p-6 sm:p-8 [&>button]:hidden">
@@ -256,10 +270,11 @@ export const MandatorySurveyModal: React.FC<MandatorySurveyModalProps> = ({ isOp
                     </Label>
                     <Input
                       id="whatsapp"
-                      placeholder="(11) 99999-9999"
+                      placeholder="(91) 99999-9999"
+                      maxLength={15}
                       value={answers.whatsapp}
-                      onChange={(e) => setAnswers((prev) => ({ ...prev, whatsapp: e.target.value }))}
-                      className="bg-background border-border"
+                      onChange={(e) => setAnswers((prev) => ({ ...prev, whatsapp: formatWhatsApp(e.target.value) }))}
+                      className="bg-background border-border font-mono"
                     />
                   </div>
 
@@ -272,6 +287,7 @@ export const MandatorySurveyModal: React.FC<MandatorySurveyModalProps> = ({ isOp
                 </div>
               </div>
             )}
+
 
             {/* Botoes de Navegação */}
             <div className="flex items-center justify-between gap-3 mt-8 pt-4 border-t border-border">
